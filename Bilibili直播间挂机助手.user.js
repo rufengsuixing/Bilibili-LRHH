@@ -83,6 +83,14 @@
         blocked: false
     };
 
+	let giftnum=0;
+
+    let lastroomid=0;
+
+    let lastgifttime=Date.now();
+
+    let lastguardtime=Date.now();
+
     const tz_offset = new Date().getTimezoneOffset() + 480;
 
     const ts_s = () => Math.round(ts_ms() / 1000);
@@ -712,7 +720,8 @@
                     AUTO_LOTTERY_CONFIG: {
                         GIFT_LOTTERY: true,
                         GIFT_LOTTERY_CONFIG: {
-                            REFRESH_INTERVAL: 0
+                            REFRESH_INTERVAL: 0,
+                            MORE_THAN:0
                         },
                         GUARD_AWARD: true,
                         GUARD_AWARD_CONFIG: {
@@ -757,7 +766,8 @@
                     AUTO_LOTTERY_CONFIG: {
                         GIFT_LOTTERY: '礼物抽奖',
                         GIFT_LOTTERY_CONFIG: {
-                            REFRESH_INTERVAL: '刷新间隔'
+                            REFRESH_INTERVAL: '刷新间隔',
+                            MORE_THAN:'大于数量'
                         },
                         GUARD_AWARD: '舰队领奖',
                         GUARD_AWARD_CONFIG: {
@@ -1066,6 +1076,10 @@
                     config.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.REFRESH_INTERVAL = parseInt(config.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.REFRESH_INTERVAL, 10);
                     if (config.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.REFRESH_INTERVAL < 0) config.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.REFRESH_INTERVAL = 0;
 
+                    if (config.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.MORE_THAN === undefined) config.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.MORE_THAN = Essential.Config.CONFIG_DEFAULT.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.MORE_THAN;
+                    config.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.MORE_THAN = parseInt(config.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.MORE_THAN, 10);
+                    if (config.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.MORE_THAN < 0) config.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.MORE_THAN = 0;
+                    
                     if (config.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.CHANGE_ROOM_INTERVAL === undefined) config.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.CHANGE_ROOM_INTERVAL = Essential.Config.CONFIG_DEFAULT.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.CHANGE_ROOM_INTERVAL;
                     config.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.CHANGE_ROOM_INTERVAL = parseInt(config.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.CHANGE_ROOM_INTERVAL, 10);
                     if (config.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.CHANGE_ROOM_INTERVAL < 0) config.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.CHANGE_ROOM_INTERVAL = 0;
@@ -2128,8 +2142,33 @@
                                             if (!CONFIG.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY) break;
                                             if (Info.blocked || !obj.roomid || !obj.real_roomid) break;
                                             if (obj.real_roomid !== Info.roomid) {
-                                                delayCall(() => Lottery.create(obj.roomid, obj.real_roomid, 'LOTTERY', obj.link_url), 60e3);
-                                            }
+                                                let tmpnum=0;
+												if (lastroomid==Info.roomid){
+                                                    tmpnum=giftnum;
+                                                }
+												lastroomid=Info.roomid;
+                                                try{
+                                                    giftnum = obj.msg_self.match(giftnumreg)[1];
+                                                    giftnum = parseInt(giftnum, 10);
+                                                }
+                                                catch(err){
+                                                    giftnum=1;
+                                                }
+                                                //giftnum=giftnum+tmpnum;
+                                                if (giftnum > CONFIG.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.MORE_THAN){
+                                                    lastgifttime=ts_ms();
+                                                    console.debug("choujiang",giftnum);
+                                                    delayCall(() => Lottery.create(obj.roomid, obj.real_roomid, 'LOTTERY', obj.link_url), 60e3);
+												}else{
+                                                    if (ts_ms()-lastgifttime>30000){
+                                                        lastgifttime=ts_ms();
+                                                        console.debug("choujiang",giftnum);
+                                                        Lottery.create(obj.roomid, obj.real_roomid, 'LOTTERY', obj.link_url);
+                                                    }else{
+                                                        console.debug("fangqichoujiang",giftnum);
+                                                    }
+                                                }
+											}
                                         }
                                         break;
                                     case 3:
@@ -2137,7 +2176,13 @@
                                         if (!CONFIG.AUTO_LOTTERY_CONFIG.GUARD_AWARD) break;
                                         if (Info.blocked || !obj.roomid || !obj.real_roomid) break;
                                         if (obj.real_roomid !== Info.roomid) {
-                                            Lottery.create(obj.roomid, obj.real_roomid, 'LOTTERY', obj.link_url);
+                                            if (ts_ms()-lastguardtime>30000){
+                                                  lastguardtime=ts_ms();
+                                                  console.debug("jiandui");
+                                                  Lottery.create(obj.roomid, obj.real_roomid, 'LOTTERY', obj.link_url);
+                                            }else{
+                                                console.debug("fangqijiandui");
+                                            }
                                         }
                                         break;
                                     case 4:
