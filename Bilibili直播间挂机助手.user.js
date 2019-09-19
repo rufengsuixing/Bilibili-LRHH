@@ -721,12 +721,14 @@
                         GIFT_LOTTERY: true,
                         GIFT_LOTTERY_CONFIG: {
                             REFRESH_INTERVAL: 0,
-                            MORE_THAN:0
+                            MORE_THAN:0,
+			    GETLESS_INTERVAL:20000
                         },
                         GUARD_AWARD: true,
                         GUARD_AWARD_CONFIG: {
                             LISTEN_NUMBER: 1,
-                            CHANGE_ROOM_INTERVAL: 60
+                            CHANGE_ROOM_INTERVAL: 60,
+			    GETLESS_INTERVAL:20000
                         },
                         MATERIAL_OBJECT_LOTTERY: true,
                         MATERIAL_OBJECT_LOTTERY_CONFIG: {
@@ -767,12 +769,14 @@
                         GIFT_LOTTERY: '礼物抽奖',
                         GIFT_LOTTERY_CONFIG: {
                             REFRESH_INTERVAL: '刷新间隔',
-                            MORE_THAN:'大于数量'
+                            MORE_THAN:'大于数量必抽',
+			    GETLESS_INTERVAL:'少于数量抽间隔'
                         },
                         GUARD_AWARD: '舰队领奖',
                         GUARD_AWARD_CONFIG: {
                             LISTEN_NUMBER: '监听倍数',
-                            CHANGE_ROOM_INTERVAL: '换房间隔'
+                            CHANGE_ROOM_INTERVAL: '换房间隔',
+			    GETLESS_INTERVAL:'1数量抽间隔'
                         },
                         MATERIAL_OBJECT_LOTTERY: '实物抽奖',
                         MATERIAL_OBJECT_LOTTERY_CONFIG: {
@@ -828,11 +832,13 @@
                     AUTO_LOTTERY_CONFIG: {
                         GIFT_LOTTERY: '包括小电视、摩天大楼、C位光环及其他可以通过送礼触发广播的抽奖<br>内置几秒钟的延迟',
                         GIFT_LOTTERY_CONFIG: {
-                            REFRESH_INTERVAL: '设置页面自动刷新的时间间隔，设置为0则不启用，单位为分钟<br>太久导致页面崩溃将无法正常运行脚本'
+                            REFRESH_INTERVAL: '设置页面自动刷新的时间间隔，设置为0则不启用，单位为分钟<br>太久导致页面崩溃将无法正常运行脚本',
+			    GETLESS_INTERVAL: '设置少于指定数的获取间隔，单位ms'
                         },
                         GUARD_AWARD_CONFIG: {
                             LISTEN_NUMBER: '设置在各大分区中的每一个分区监听的直播间的数量，1~5之间的一个整数<br>可能导致占用大量内存或导致卡顿',
-                            CHANGE_ROOM_INTERVAL: '设置在多久之后改变监听的房间，单位为分钟，0表示不改变'
+                            CHANGE_ROOM_INTERVAL: '设置在多久之后改变监听的房间，单位为分钟，0表示不改变',
+			    GETLESS_INTERVAL: '设置舰队的获取间隔，单位ms'
                         },
                         MATERIAL_OBJECT_LOTTERY: '部分房间设有实物奖励抽奖，脚本使用穷举的方式检查是否有实物抽奖<br>请注意中奖后记得及时填写相关信息领取实物奖励',
                         MATERIAL_OBJECT_LOTTERY_CONFIG: {
@@ -1080,9 +1086,17 @@
                     config.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.MORE_THAN = parseInt(config.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.MORE_THAN, 10);
                     if (config.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.MORE_THAN < 0) config.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.MORE_THAN = 0;
                     
+		    if (config.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.GETLESS_INTERVAL === undefined) config.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.GETLESS_INTERVAL = Essential.Config.CONFIG_DEFAULT.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.GETLESS_INTERVAL;
+                    config.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.GETLESS_INTERVAL = parseInt(config.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.GETLESS_INTERVAL, 10);
+                    if (config.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.GETLESS_INTERVAL < 0) config.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.GETLESS_INTERVAL = 20000;
+                    
                     if (config.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.CHANGE_ROOM_INTERVAL === undefined) config.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.CHANGE_ROOM_INTERVAL = Essential.Config.CONFIG_DEFAULT.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.CHANGE_ROOM_INTERVAL;
                     config.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.CHANGE_ROOM_INTERVAL = parseInt(config.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.CHANGE_ROOM_INTERVAL, 10);
                     if (config.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.CHANGE_ROOM_INTERVAL < 0) config.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.CHANGE_ROOM_INTERVAL = 0;
+
+		    if (config.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.GETLESS_INTERVAL === undefined) config.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.GETLESS_INTERVAL = Essential.Config.CONFIG_DEFAULT.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.GETLESS_INTERVAL;
+                    config.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.GETLESS_INTERVAL = parseInt(config.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.GETLESS_INTERVAL, 10);
+                    if (config.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.GETLESS_INTERVAL < 0) config.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.GETLESS_INTERVAL = 0;
 
                     if (config.AUTO_LOTTERY_CONFIG.MATERIAL_OBJECT_LOTTERY_CONFIG.CHECK_INTERVAL === undefined) config.AUTO_LOTTERY_CONFIG.MATERIAL_OBJECT_LOTTERY_CONFIG.CHECK_INTERVAL = Essential.Config.CONFIG_DEFAULT.AUTO_LOTTERY_CONFIG.MATERIAL_OBJECT_LOTTERY_CONFIG.CHECK_INTERVAL;
                     config.AUTO_LOTTERY_CONFIG.MATERIAL_OBJECT_LOTTERY_CONFIG.CHECK_INTERVAL = parseInt(config.AUTO_LOTTERY_CONFIG.MATERIAL_OBJECT_LOTTERY_CONFIG.CHECK_INTERVAL, 10);
@@ -2160,7 +2174,7 @@
                                                     console.debug("choujiang",giftnum);
                                                     delayCall(() => Lottery.create(obj.roomid, obj.real_roomid, 'LOTTERY', obj.link_url), 60e3);
 												}else{
-                                                    if (ts_ms()-lastgifttime>30000){
+                                                    if (ts_ms()-lastgifttime>CONFIG.AUTO_LOTTERY_CONFIG.GIFT_LOTTERY_CONFIG.GETLESS_INTERVAL){
                                                         lastgifttime=ts_ms();
                                                         console.debug("choujiang",giftnum);
                                                         Lottery.create(obj.roomid, obj.real_roomid, 'LOTTERY', obj.link_url);
@@ -2176,7 +2190,7 @@
                                         if (!CONFIG.AUTO_LOTTERY_CONFIG.GUARD_AWARD) break;
                                         if (Info.blocked || !obj.roomid || !obj.real_roomid) break;
                                         if (obj.real_roomid !== Info.roomid) {
-                                            if (ts_ms()-lastguardtime>30000){
+                                            if (ts_ms()-lastguardtime>CONFIG.AUTO_LOTTERY_CONFIG.GUARD_AWARD_CONFIG.GETLESS_INTERVAL){
                                                   lastguardtime=ts_ms();
                                                   console.debug("jiandui");
                                                   Lottery.create(obj.roomid, obj.real_roomid, 'LOTTERY', obj.link_url);
